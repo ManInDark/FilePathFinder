@@ -51,14 +51,14 @@ def update(term: curses.window):
         term.addstr(index + 1 - offset, 2, ">", curses.color_pair(2))
 
         key: int = term.getch()
-        if key == curses.KEY_DOWN:
+        if key == curses.KEY_DOWN or key == 106: # j
             index += 1
             if index >= dir_size:
                 index = 0
                 offset = 0
             if index >= curses.LINES - 1:
                 offset += 1
-        elif key == curses.KEY_UP:
+        elif key == curses.KEY_UP or key == 107: # k
             index -= 1
             if index < 0:
                 index = dir_size - 1
@@ -66,14 +66,16 @@ def update(term: curses.window):
             elif offset - index > 0:
                 offset -= 1
 
-        elif key == 10 or key == 62: # Return or >
+        elif key == 10 or key == 62 or key == 108: # Return or > or l
             wd = list(wd.glob("*"))[index]
             if not wd.is_dir():
                 break
             else:
                 cd(wd)
-        elif key == 60: # <
+        elif key == 60 or key == 104: # < or h
             cd(wd.parent)
+        elif key == 27 or key == 113: # ESC
+            break
 
         term.refresh()
 
