@@ -10,6 +10,7 @@ args = parser.parse_args()
 wd: pathlib.Path = pathlib.Path.cwd() if args.path is None else args.path
 wd = wd.resolve().absolute()
 index: int = 0
+offset: int = 0
 
 def select_color(file: pathlib.Path) -> int:
     if file.is_dir():
@@ -25,9 +26,11 @@ def print_files(term: curses.window, dir_size: int):
         term.addstr(i, 0, "|")
     files = wd.glob("*")
     for i, file in enumerate(files):
-        if i >= curses.LINES - 1:
+        if i < offset:
+            continue
+        if i - offset >= curses.LINES - 1:
             break
-        term.addstr(i + 1, 4, str(file.name), curses.color_pair(select_color(file)))
+        term.addstr(i + 1 - offset, 4, str(file.name), curses.color_pair(select_color(file)))
 
     term.refresh()
 
@@ -36,28 +39,34 @@ def cd(newdir):
     global wd, index
     wd = newdir
     index = 0
+    offset = 0
 
 def update(term: curses.window):
-    global wd, index
-    
-
+    global wd, index, offset
 
     while True:
         term.clear()
         dir_size = len(list(wd.glob("*")))
         print_files(term, dir_size)
-        term.addstr(index + 1, 2, ">", curses.color_pair(2))
+        term.addstr(index + 1 - offset, 2, ">", curses.color_pair(2))
 
         key: int = term.getch()
         if key == curses.KEY_DOWN:
             index += 1
-            if index >= dir_size or index >= curses.LINES - 1:
+            if index >= dir_size:
                 index = 0
+                offset = 0
+            if index >= curses.LINES - 1:
+                offset += 1
         elif key == curses.KEY_UP:
             index -= 1
             if index < 0:
-                index = min(dir_size - 1, curses.LINES - 2)
-        elif key == 10: # Return
+                index = dir_size - 1
+                offset = max(0, dir_size - curses.LINES + 1)
+            elif offset - index > 0:
+                offset -= 1
+
+        elif key == 10 or key == 62: # Return or >
             wd = list(wd.glob("*"))[index]
             if not wd.is_dir():
                 break
